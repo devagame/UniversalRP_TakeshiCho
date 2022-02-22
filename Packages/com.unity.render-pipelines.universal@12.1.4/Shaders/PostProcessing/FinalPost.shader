@@ -6,6 +6,7 @@ Shader "Hidden/Universal Render Pipeline/FinalPost"
         #pragma multi_compile_local_fragment _ _FILM_GRAIN
         #pragma multi_compile_local_fragment _ _DITHERING
         #pragma multi_compile_local_fragment _ _LINEAR_TO_SRGB_CONVERSION
+        #pragma multi_compile_fragment _ _SRGB_TO_LINEAR_CONVERSION
         #pragma multi_compile _ _USE_DRAW_PROCEDURAL
         #pragma multi_compile_fragment _ DEBUG_DISPLAY
 
@@ -124,6 +125,12 @@ Shader "Hidden/Universal Render Pipeline/FinalPost"
             #if _LINEAR_TO_SRGB_CONVERSION
             {
                 color = LinearToSRGB(color);
+            }
+            #endif
+
+            #if _SRGB_TO_LINEAR_CONVERSION
+            {
+                color = SRGBToLinear(color);
             }
             #endif
 

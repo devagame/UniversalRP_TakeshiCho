@@ -57,6 +57,19 @@ namespace UnityEngine.Rendering.Universal.Internal
             {
                 GetActiveDebugHandler(renderingData)?.UpdateShaderGlobalPropertiesForFinalValidationPass(cmd, ref cameraData, true);
 
+                // Add By:      XGAME;
+                // Purpose:     Final Process of Fix UI alpha gamma in case of FXAA Off.
+                // Note:        We should not fix gamma when the image is rendered for a Reflection Probe
+                if (cameraData.cameraType == CameraType.Reflection)
+                {
+                    // Do something maybe...
+                }
+                else
+                {
+                    cmd.EnableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                }
+                // End Add
+
                 CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion,
                     cameraData.requireSrgbConversion);
 
@@ -119,6 +132,9 @@ namespace UnityEngine.Rendering.Universal.Internal
                     cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
                     cameraData.renderer.ConfigureCameraTarget(cameraTarget, cameraTarget);
                 }
+
+                // Add By: XGAME; End the Final Process.
+                cmd.DisableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
             }
 
             context.ExecuteCommandBuffer(cmd);

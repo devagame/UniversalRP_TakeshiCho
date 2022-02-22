@@ -248,7 +248,15 @@ namespace UnityEngine.Rendering.Universal.Internal
                 var cmd = CommandBufferPool.Get();
                 using (new ProfilingScope(cmd, m_ProfilingRenderFinalPostProcessing))
                 {
+                    // Add By:      XGAME;
+                    // Purpose:     Final Process of Fix UI alpha gamma in case of FXAA ON.
+                    cmd.EnableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                    // End Add
+                    
                     RenderFinalPass(cmd, ref renderingData);
+                    
+                    // Add By: XGAME; End the Final Process.
+                    cmd.DisableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
                 }
 
                 context.ExecuteCommandBuffer(cmd);
@@ -266,7 +274,13 @@ namespace UnityEngine.Rendering.Universal.Internal
                 var cmd = CommandBufferPool.Get();
                 using (new ProfilingScope(cmd, m_ProfilingRenderPostProcessing))
                 {
+                    // Add By: XGAME; Purpose: First Process of Fix UI alpha gamma.
+                    cmd.EnableShaderKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+                    
                     Render(cmd, ref renderingData);
+                    
+                    // Add By: XGAME; End the First Process.
+                    cmd.DisableShaderKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
                 }
 
                 context.ExecuteCommandBuffer(cmd);
@@ -602,6 +616,16 @@ namespace UnityEngine.Rendering.Universal.Internal
                     // in the pipeline to avoid this extra blit.
                     if (!m_ResolveToScreen && !m_UseSwapBuffer)
                     {
+                        // Add by: XGAME
+                        cmd.ReleaseTemporaryRT(m_Destination.id);
+                        cmd.ReleaseTemporaryRT(m_Depth.id);
+                        m_Descriptor.height = Screen.height;
+                        m_Descriptor.width = Screen.width;
+                        cmd.GetTemporaryRT(m_Depth.id, m_Descriptor);
+                        m_Descriptor.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                        cmd.GetTemporaryRT(m_Destination.id, m_Descriptor);
+                        // End Add
+                        
                         cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, cameraTarget);
                         cmd.SetRenderTarget(m_Source, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
                         cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);

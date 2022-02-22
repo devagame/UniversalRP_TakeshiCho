@@ -326,6 +326,9 @@ namespace UnityEngine.Rendering.Universal
 
         // Required for 2D Unlit Shadergraph master node as it doesn't currently support hidden properties.
         public static readonly int rendererColor = Shader.PropertyToID("_RendererColor");
+        
+        // Add by: XGAME
+        public static readonly int isInUICamera = Shader.PropertyToID("_IsInUICamera");
     }
 
     public struct PostProcessingData
@@ -365,6 +368,7 @@ namespace UnityEngine.Rendering.Universal
         public static readonly string DepthMsaa8 = "_DEPTH_MSAA_8";
 
         public static readonly string LinearToSRGBConversion = "_LINEAR_TO_SRGB_CONVERSION";
+        public static readonly string SRGBToLinearConversion = "_SRGB_TO_LINEAR_CONVERSION"; // Add by: Takeshi
         internal static readonly string UseFastSRGBLinearConversion = "_USE_FAST_SRGB_LINEAR_CONVERSION";
 
         public static readonly string DBufferMRT1 = "_DBUFFER_MRT1";
