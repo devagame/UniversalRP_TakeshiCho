@@ -1,6 +1,6 @@
-### UniversalRP 自定义渲染管线 DEMO
+# UniversalRP 自定义渲染管线 DEMO
 
-* 这个项目是一套基于 Unity UniversalRP 的 UI 渲染管线 和 Shader 框架, 为了修复线性色彩空间中的 UI 切图的透明度错误,
+这个项目是一套基于 Unity UniversalRP 的 UI 渲染管线 和 Shader 框架, 为了修复线性色彩空间中的 UI 切图的透明度错误,
 能够让 UI 设计师在 Unity 中保持原有的 sRBG 工作流.
 
 * [UICamera => Gamma]    <=>   [SceneCamera => Linear]
