@@ -368,7 +368,7 @@ namespace UnityEngine.Rendering.Universal
         public static readonly string DepthMsaa8 = "_DEPTH_MSAA_8";
 
         public static readonly string LinearToSRGBConversion = "_LINEAR_TO_SRGB_CONVERSION";
-        public static readonly string SRGBToLinearConversion = "_SRGB_TO_LINEAR_CONVERSION"; // Add by: Takeshi
+        public static readonly string SRGBToLinearConversion = "_SRGB_TO_LINEAR_CONVERSION"; // Add by: XGAME
         internal static readonly string UseFastSRGBLinearConversion = "_USE_FAST_SRGB_LINEAR_CONVERSION";
 
         public static readonly string DBufferMRT1 = "_DBUFFER_MRT1";
