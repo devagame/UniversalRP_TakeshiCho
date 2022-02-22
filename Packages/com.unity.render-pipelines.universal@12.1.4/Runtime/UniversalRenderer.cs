@@ -279,8 +279,8 @@ namespace UnityEngine.Rendering.Universal
             m_FinalDepthCopyPass = new CopyDepthPass(RenderPassEvent.AfterRendering + 9, m_CopyDepthMaterial);
             
             // Add By: XGAME
-            m_FirstProcessInSceneView = new FixingGammaPass(RenderPassEvent.BeforeRenderingTransparents, m_BlitMaterial, "First Process", ShaderKeywordStrings.LinearToSRGBConversion,"_FirstFixGammaProcessInSceneView");
-            m_FinalProcessInSceneView = new FixingGammaPass(RenderPassEvent.BeforeRenderingPostProcessing ,m_BlitMaterial, "Final Process", ShaderKeywordStrings.SRGBToLinearConversion,"_FinalFixGammaProcessInSceneView");
+            m_FirstProcessInSceneView = new FixingGammaPass(RenderPassEvent.BeforeRenderingTransparents, m_BlitMaterial, "First Process", ShaderKeywordStrings.LinearToSRGBConversion, "_FirstFixGammaProcessInSceneView");
+            m_FinalProcessInSceneView = new FixingGammaPass(RenderPassEvent.BeforeRenderingPostProcessing , m_BlitMaterial, "Final Process", ShaderKeywordStrings.SRGBToLinearConversion, "_FinalFixGammaProcessInSceneView");
             // End Add
 #endif
 

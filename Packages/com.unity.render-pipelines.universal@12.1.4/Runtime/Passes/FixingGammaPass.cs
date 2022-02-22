@@ -70,7 +70,7 @@ namespace UnityEngine.Rendering.Universal.Internal
 #if UNITY_EDITOR
                 if (cameraData.isSceneViewCamera)
                 {
-                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera, 1);
+                    cmd.SetGlobalInt(ShaderPropertyId.isInUICamera, 1);
                     cmd.GetTemporaryRT(m_TempBlit.id, desc);
 
                     cmd.Blit(m_Source.Identifier(), m_TempBlit.Identifier(), m_BlitMaterial);

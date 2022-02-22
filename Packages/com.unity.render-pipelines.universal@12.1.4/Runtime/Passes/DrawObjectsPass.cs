@@ -84,13 +84,13 @@ namespace UnityEngine.Rendering.Universal.Internal
                 // Add by: XGAME
                 Camera camera = renderingData.cameraData.camera;
                 if (camera.CompareTag("UICamera"))
-                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera, 1);
+                    cmd.SetGlobalInt(ShaderPropertyId.isInUICamera, 1);
 #if UNITY_EDITOR
                 else if(m_FilteringSettings.layerMask == LayerMask.GetMask("UI") && renderingData.cameraData.isSceneViewCamera)
-                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera, 1);
+                    cmd.SetGlobalInt(ShaderPropertyId.isInUICamera, 1);
 #endif
                 else 
-                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera, 0);
+                    cmd.SetGlobalInt(ShaderPropertyId.isInUICamera, 0);
                 // End Add
                 
                 // Global render pass data containing various settings.
