@@ -83,6 +83,7 @@ namespace UnityEngine.Rendering.Universal
         // Add by: XGAME
         DrawObjectsPass m_UGUIPass;
         FixingGammaPass m_FirstProcessWhenNoPost;
+        FixingGammaPass m_FirstProcessWhenYesPost;
 #if UNITY_EDITOR
         FixingGammaPass m_FirstProcessInSceneView;
         FixingGammaPass m_FinalProcessInSceneView;
@@ -272,7 +273,8 @@ namespace UnityEngine.Rendering.Universal
             
             // Add by: XGAME
             m_UGUIPass = new DrawObjectsPass("UGUI", false, RenderPassEvent.BeforeRenderingTransparents + 1, RenderQueueRange.transparent, LayerMask.GetMask("UI"), m_DefaultStencilState, stencilData.stencilReference);
-            m_FirstProcessWhenNoPost = new FixingGammaPass(RenderPassEvent.AfterRenderingPostProcessing + 1, m_BlitMaterial, "First Process of Fixing Gamma ( when Post Processing off )", ShaderKeywordStrings.LinearToSRGBConversion);
+            m_FirstProcessWhenNoPost = new FixingGammaPass(RenderPassEvent.AfterRenderingPostProcessing + 1, m_BlitMaterial, "First Process of Fixing Gamma ( when Post Processing No )", ShaderKeywordStrings.LinearToSRGBConversion);
+            m_FirstProcessWhenYesPost = new FixingGammaPass(RenderPassEvent.BeforeRenderingPrePasses + 1, m_BlitMaterial, "First Process of Fixing Gamma ( when Post Processing Yes )", ShaderKeywordStrings.LinearToSRGBConversion);
             // End Add
             
 #if UNITY_EDITOR
@@ -412,7 +414,17 @@ namespace UnityEngine.Rendering.Universal
                     return;
 #endif
                 EnqueuePass(m_RenderTransparentForwardPass);
-                EnqueuePass(m_UGUIPass); // Add By: XGAME
+                
+                // Add By: XGAME
+                EnqueuePass(m_UGUIPass);
+                
+                // Add By:  XGAME
+                if (camera.CompareTag("UICamera"))
+                {
+                    m_FirstProcessWhenYesPost.Setup(m_ActiveCameraColorAttachment, m_ActiveCameraDepthAttachment);
+                    EnqueuePass(m_FirstProcessWhenYesPost);
+                }
+                // End Add
                 return;
             }
 
@@ -790,7 +802,17 @@ namespace UnityEngine.Rendering.Universal
                 m_RenderTransparentForwardPass.ConfigureColorStoreAction(transparentPassColorStoreAction);
                 m_RenderTransparentForwardPass.ConfigureDepthStoreAction(transparentPassDepthStoreAction);
                 EnqueuePass(m_RenderTransparentForwardPass);
-                EnqueuePass(m_UGUIPass); // Add By: XGAME
+                
+                // Add By: XGAME
+                EnqueuePass(m_UGUIPass); 
+
+                // Add By:  XGAME
+                if (anyPostProcessing && !isSceneViewCamera && camera.CompareTag("UICamera"))
+                {
+                    m_FirstProcessWhenYesPost.Setup(m_ActiveCameraColorAttachment, m_ActiveCameraDepthAttachment);
+                    EnqueuePass(m_FirstProcessWhenYesPost);
+                }
+                // End Add
             }
             EnqueuePass(m_OnRenderObjectCallbackPass);
 
@@ -895,6 +917,7 @@ namespace UnityEngine.Rendering.Universal
                 postProcessPass.Setup(cameraTargetDescriptor, m_ActiveCameraColorAttachment, false, m_ActiveCameraDepthAttachment, colorGradingLut, false, false);
                 EnqueuePass(postProcessPass);
             }
+            
 
 #if UNITY_EDITOR
             if (isSceneViewCamera || isGizmosEnabled)
