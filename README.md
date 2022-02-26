@@ -41,6 +41,9 @@
   
 * 11 / 28 / 2021:  
   Supported UI Render with Individual resolution.
+  
+* 25 / 02 / 2022
+  Supported URP 12.1.4+
 
 ### Plan:
 * To Develop Camera Managing Script. 
