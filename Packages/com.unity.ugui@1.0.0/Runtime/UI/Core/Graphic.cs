@@ -94,12 +94,7 @@ namespace UnityEngine.UI
             get
             {
                 if (s_DefaultUI == null)
-                {
-                    //s_DefaultUI = Canvas.GetDefaultCanvasMaterial();
-                    Shader uiShader = Shader.Find("UniversalRP/UI/Default");
-                    s_DefaultUI = new Material(uiShader);
-                }
-
+                    s_DefaultUI = Canvas.GetDefaultCanvasMaterial();
                 return s_DefaultUI;
             }
         }

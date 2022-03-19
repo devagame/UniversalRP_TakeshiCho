@@ -83,6 +83,11 @@ namespace UnityEngine.UIElements
                 // The multiple display system is not supported on all platforms, when it is not supported the returned position
                 // will be all zeros so when the returned index is 0 we will default to the event data to be safe.
                 eventPosition = eventData.position;
+#if UNITY_EDITOR
+                if (Display.activeEditorGameViewTarget != displayIndex)
+                    return;
+                eventPosition.z = Display.activeEditorGameViewTarget;
+#endif
 
                 // We don't really know in which display the event occurred. We will process the event assuming it occurred in our display.
             }
@@ -106,7 +111,13 @@ namespace UnityEngine.UIElements
             if (capturingElement is VisualElement ve && ve.panel != m_Panel)
                 return;
 
-            if (capturingElement == null)
+            var capturingPanel = PointerDeviceState.GetPressedButtons(pointerId) != 0 ?
+                                 PointerDeviceState.GetPlayerPanelWithSoftPointerCapture(pointerId) :
+                                 null;
+            if (capturingPanel != null && capturingPanel != m_Panel)
+                return;
+
+            if (capturingElement == null && capturingPanel == null)
             {
                 if (!m_Panel.ScreenToPanel(position, delta, out var panelPosition, out _))
                     return;

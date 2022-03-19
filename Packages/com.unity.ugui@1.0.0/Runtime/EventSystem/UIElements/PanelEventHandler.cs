@@ -9,7 +9,7 @@ namespace UnityEngine.UIElements
     [AddComponentMenu("UI Toolkit/Panel Event Handler (UI Toolkit)")]
     public class PanelEventHandler : UIBehaviour, IPointerMoveHandler, IPointerUpHandler, IPointerDownHandler,
         ISubmitHandler, ICancelHandler, IMoveHandler, IScrollHandler, ISelectHandler, IDeselectHandler,
-        IRuntimePanelComponent
+        IPointerExitHandler, IPointerEnterHandler, IRuntimePanelComponent
     {
         private BaseRuntimePanel m_Panel;
 
@@ -109,7 +109,7 @@ namespace UnityEngine.UIElements
 
         public void OnPointerMove(PointerEventData eventData)
         {
-            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData, true))
+            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData))
                 return;
 
             using (var e = PointerMoveEvent.GetPooled(m_PointerEvent))
@@ -120,18 +120,21 @@ namespace UnityEngine.UIElements
 
         public void OnPointerUp(PointerEventData eventData)
         {
-            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData, false))
+            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData, PointerEventType.Up))
                 return;
 
             using (var e = PointerUpEvent.GetPooled(m_PointerEvent))
             {
                 SendEvent(e, eventData);
+
+                if (e.pressedButtons == 0)
+                    PointerDeviceState.SetPlayerPanelWithSoftPointerCapture(e.pointerId, null);
             }
         }
 
         public void OnPointerDown(PointerEventData eventData)
         {
-            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData, false))
+            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData, PointerEventType.Down))
                 return;
 
             if (eventSystem != null)
@@ -140,7 +143,39 @@ namespace UnityEngine.UIElements
             using (var e = PointerDownEvent.GetPooled(m_PointerEvent))
             {
                 SendEvent(e, eventData);
+
+                PointerDeviceState.SetPlayerPanelWithSoftPointerCapture(e.pointerId, m_Panel);
             }
+        }
+
+        public void OnPointerExit(PointerEventData eventData)
+        {
+            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData))
+                return;
+
+            // If a pointer exit is called while the pointer is still on top of this object, it means
+            // there's something else removing the pointer, so we might need to send a PointerCancelEvent.
+            // This is necessary for touch pointers that are being released, because in UGUI the object
+            // that was last hovered will not always be the one receiving the pointer up.
+            if (eventData.pointerCurrentRaycast.gameObject == gameObject &&
+                eventData.pointerPressRaycast.gameObject != gameObject &&
+                m_PointerEvent.pointerId != PointerId.mousePointerId)
+            {
+                using (var e = PointerCancelEvent.GetPooled(m_PointerEvent))
+                {
+                    SendEvent(e, eventData);
+                }
+            }
+
+            m_Panel.PointerLeavesPanel(m_PointerEvent.pointerId, m_PointerEvent.position);
+        }
+
+        public void OnPointerEnter(PointerEventData eventData)
+        {
+            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData))
+                return;
+
+            m_Panel.PointerEntersPanel(m_PointerEvent.pointerId, m_PointerEvent.position);
         }
 
         public void OnSubmit(BaseEventData eventData)
@@ -180,7 +215,7 @@ namespace UnityEngine.UIElements
 
         public void OnScroll(PointerEventData eventData)
         {
-            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData, true))
+            if (m_Panel == null || !ReadPointerData(m_PointerEvent, eventData))
                 return;
 
             var scrollDelta = eventData.scrollDelta;
@@ -313,18 +348,24 @@ namespace UnityEngine.UIElements
             }
         }
 
-        private bool ReadPointerData(PointerEvent pe, PointerEventData eventData, bool isMove)
+        private bool ReadPointerData(PointerEvent pe, PointerEventData eventData, PointerEventType eventType = PointerEventType.Default)
         {
             if (eventSystem == null || eventSystem.currentInputModule == null)
                 return false;
 
-            pe.Read(this, eventData, isMove);
+            pe.Read(this, eventData, eventType);
 
-            if (!m_Panel.ScreenToPanel(pe.position, pe.deltaPosition, out var panelPosition, out var panelDelta))
-                return false;
+            // PointerEvents making it this far have been validated by PanelRaycaster already
+            m_Panel.ScreenToPanel(pe.position, pe.deltaPosition,
+                out var panelPosition, out var panelDelta, allowOutside:true);
 
             pe.SetPosition(panelPosition, panelDelta);
             return true;
+        }
+
+        enum PointerEventType
+        {
+            Default, Down, Up
         }
 
         class PointerEvent : IPointerEvent
@@ -358,7 +399,7 @@ namespace UnityEngine.UIElements
                 ? commandKey
                 : ctrlKey;
 
-            public void Read(PanelEventHandler self, PointerEventData eventData, bool isMove)
+            public void Read(PanelEventHandler self, PointerEventData eventData, PointerEventType eventType)
             {
                 pointerId = self.eventSystem.currentInputModule.ConvertUIToolkitPointerId(eventData);
 
@@ -374,9 +415,7 @@ namespace UnityEngine.UIElements
                     pointerId == PointerId.penPointerIdBase;
 
                 button = (int)eventData.button;
-                pressedButtons = PointerDeviceState.GetPressedButtons(pointerId);
                 clickCount = eventData.clickCount;
-
 
                 // Flip Y axis between input and UITK
                 var h = Screen.height;
@@ -413,7 +452,7 @@ namespace UnityEngine.UIElements
 
                 modifiers = s_Modifiers;
 
-                if (isMove)
+                if (eventType == PointerEventType.Default)
                 {
                     button = -1;
                     clickCount = 0;
@@ -422,7 +461,14 @@ namespace UnityEngine.UIElements
                 {
                     button = button >= 0 ? button : 0;
                     clickCount = Mathf.Max(1, clickCount);
+
+                    if (eventType == PointerEventType.Down)
+                        PointerDeviceState.PressButton(pointerId, button);
+                    else if (eventType == PointerEventType.Up)
+                        PointerDeviceState.ReleaseButton(pointerId, button);
                 }
+
+                pressedButtons = PointerDeviceState.GetPressedButtons(pointerId);
             }
 
             public void SetPosition(Vector3 positionOverride, Vector3 deltaOverride)
