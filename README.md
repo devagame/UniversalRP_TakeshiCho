@@ -39,11 +39,19 @@
   Fixed the the wrong effects of Reflection Probe in scene view.  
   Fixed the the wrong effects of Transparent Objects in scene view.
   
+
 * 11 / 28 / 2021:  
   Supported UI Render with Individual resolution.
   
-* 25 / 02 / 2022
+
+* 25 / 02 / 2022:
+  
   Supported URP 12.1.4+
+
+
+* 19 / 03 / 2022:
+  
+  Supported URP 12.1.6+
 
 ### Plan:
 * To Develop Camera Managing Script. 
