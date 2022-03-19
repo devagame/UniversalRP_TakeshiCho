@@ -21,7 +21,7 @@ namespace UnityEngine.Rendering.Universal.Internal
     public class PostProcessPass : ScriptableRenderPass
     {
         RenderTextureDescriptor m_Descriptor;
-        RenderTargetIdentifier m_Source;
+        RenderTargetHandle m_Source;
         RenderTargetHandle m_Destination;
         RenderTargetHandle m_Depth;
         RenderTargetHandle m_InternalLut;
@@ -149,7 +149,7 @@ namespace UnityEngine.Rendering.Universal.Internal
             m_Descriptor = baseDescriptor;
             m_Descriptor.useMipMap = false;
             m_Descriptor.autoGenerateMips = false;
-            m_Source = source.id;
+            m_Source = source;//.id;
             m_Depth = depth;
             m_InternalLut = internalLut;
             m_IsFinalPass = false;
@@ -166,7 +166,7 @@ namespace UnityEngine.Rendering.Universal.Internal
             m_Descriptor = baseDescriptor;
             m_Descriptor.useMipMap = false;
             m_Descriptor.autoGenerateMips = false;
-            m_Source = source.id;
+            m_Source = source;//.id;
             m_Destination = destination;
             m_Depth = depth;
             m_InternalLut = internalLut;
@@ -179,7 +179,7 @@ namespace UnityEngine.Rendering.Universal.Internal
 
         public void SetupFinalPass(in RenderTargetHandle source, bool useSwapBuffer = false, bool hasExternalPostPasses = true)
         {
-            m_Source = source.id;
+            m_Source = source;//.id;
             m_Destination = RenderTargetHandle.CameraTarget;
             m_IsFinalPass = true;
             m_HasFinalPass = false;
@@ -254,7 +254,15 @@ namespace UnityEngine.Rendering.Universal.Internal
                 var cmd = CommandBufferPool.Get();
                 using (new ProfilingScope(cmd, m_ProfilingRenderFinalPostProcessing))
                 {
+                    // Add By:      XGAME;
+                    // Purpose:     Final Process of Fix UI alpha gamma in case of FXAA ON.
+                    cmd.EnableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                    // End Add
+                    
                     RenderFinalPass(cmd, ref renderingData);
+                    
+                    // Add By: XGAME; End the Final Process.
+                    cmd.DisableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
                 }
 
                 context.ExecuteCommandBuffer(cmd);
@@ -272,7 +280,13 @@ namespace UnityEngine.Rendering.Universal.Internal
                 var cmd = CommandBufferPool.Get();
                 using (new ProfilingScope(cmd, m_ProfilingRenderPostProcessing))
                 {
+                    // Add By: XGAME; Purpose: First Process of Fix UI alpha gamma.
+                    cmd.EnableShaderKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
+                    
                     Render(cmd, ref renderingData);
+                    
+                    // Add By: XGAME; End the First Process.
+                    cmd.DisableShaderKeyword(ShaderKeywordStrings.LinearToSRGBConversion);
                 }
 
                 context.ExecuteCommandBuffer(cmd);
@@ -360,7 +374,7 @@ namespace UnityEngine.Rendering.Universal.Internal
             // GetDestination() instead
             bool tempTargetUsed = false;
             bool tempTarget2Used = false;
-            RenderTargetIdentifier source = m_UseSwapBuffer ? renderer.cameraColorTarget : m_Source;
+            RenderTargetIdentifier source = m_UseSwapBuffer ? renderer.cameraColorTarget : m_Source.id;
             RenderTargetIdentifier destination = m_UseSwapBuffer ? renderer.GetCameraColorFrontBuffer(cmd) : -1;
 
             RenderTargetIdentifier GetSource() => source;
@@ -377,7 +391,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                         destination = ShaderConstants._TempTarget;
                         tempTargetUsed = true;
                     }
-                    else if (destination == m_Source && m_Descriptor.msaaSamples > 1)
+                    else if (destination == m_Source.id && m_Descriptor.msaaSamples > 1)
                     {
                         // Avoid using m_Source.id as new destination, it may come with a depth buffer that we don't want, may have MSAA that we don't want etc
                         cmd.GetTemporaryRT(ShaderConstants._TempTarget2, GetCompatibleDescriptor(), FilterMode.Bilinear);
@@ -598,7 +612,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                     if (!m_ResolveToScreen && !m_UseSwapBuffer)
                     {
                         cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, cameraTarget);
-                        cmd.SetRenderTarget(new RenderTargetIdentifier(m_Source, 0, CubemapFace.Unknown, -1),
+                        cmd.SetRenderTarget(new RenderTargetIdentifier(m_Source.id, 0, CubemapFace.Unknown, -1),
                             colorLoadAction, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
 
                         scaleBias = new Vector4(1, 1, 0, 0);;
@@ -624,8 +638,18 @@ namespace UnityEngine.Rendering.Universal.Internal
                     // in the pipeline to avoid this extra blit.
                     if (!m_ResolveToScreen && !m_UseSwapBuffer)
                     {
+                        // Add by: XGAME
+                        cmd.ReleaseTemporaryRT(m_Source.id);
+                        cmd.ReleaseTemporaryRT(m_Depth.id);
+                        m_Descriptor.height = Screen.height;
+                        m_Descriptor.width = Screen.width;
+                        cmd.GetTemporaryRT(m_Depth.id, m_Descriptor);
+                        m_Descriptor.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
+                        cmd.GetTemporaryRT(m_Source.id, m_Descriptor);
+                        // End Add
+                        
                         cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, cameraTarget);
-                        cmd.SetRenderTarget(m_Source, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
+                        cmd.SetRenderTarget(m_Source.id, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
                         cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);
                     }
 
@@ -1402,14 +1426,14 @@ namespace UnityEngine.Rendering.Universal.Internal
 
             if (!m_UseSwapBuffer)
             {
-                cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source);
+                cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source.id);
             }
-            else if (m_Source == cameraData.renderer.GetCameraColorFrontBuffer(cmd))
+            else if (m_Source.id == cameraData.renderer.GetCameraColorFrontBuffer(cmd))
             {
-                m_Source = cameraData.renderer.cameraColorTarget;
+                m_Source = new RenderTargetHandle(cameraData.renderer.cameraColorTarget);
             }
 
-            cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source);
+            cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source.id);
 
             var colorLoadAction = cameraData.isDefaultViewport ? RenderBufferLoadAction.DontCare : RenderBufferLoadAction.Load;
 
@@ -1454,11 +1478,11 @@ namespace UnityEngine.Rendering.Universal.Internal
                     cmd.GetTemporaryRT(ShaderConstants._ScalingSetupTexture, tempRtDesc, FilterMode.Point);
                     isScalingSetupUsed = true;
 
-                    Blit(cmd, m_Source, ShaderConstants._ScalingSetupTexture, m_Materials.scalingSetup);
+                    Blit(cmd, m_Source.id, ShaderConstants._ScalingSetupTexture, m_Materials.scalingSetup);
 
                     cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, ShaderConstants._ScalingSetupTexture);
 
-                    sourceRtId = ShaderConstants._ScalingSetupTexture;
+                    sourceRtId = new RenderTargetHandle(ShaderConstants._ScalingSetupTexture);
                 }
 
                 switch (cameraData.imageScalingMode)
@@ -1499,7 +1523,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                                 var fsrOutputSize = new Vector2(cameraData.pixelWidth, cameraData.pixelHeight);
                                 FSRUtils.SetEasuConstants(cmd, fsrInputSize, fsrInputSize, fsrOutputSize);
 
-                                Blit(cmd, sourceRtId, ShaderConstants._UpscaledTexture, m_Materials.easu);
+                                Blit(cmd, sourceRtId.id, ShaderConstants._UpscaledTexture, m_Materials.easu);
 
                                 // RCAS
                                 // Use the override value if it's available, otherwise use the default.

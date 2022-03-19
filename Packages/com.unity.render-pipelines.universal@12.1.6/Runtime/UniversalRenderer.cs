@@ -79,6 +79,17 @@ namespace UnityEngine.Rendering.Universal
         InvokeOnRenderObjectCallbackPass m_OnRenderObjectCallbackPass;
         FinalBlitPass m_FinalBlitPass;
         CapturePass m_CapturePass;
+        
+        // Add by: XGAME
+        DrawObjectsPass m_UGUIPass;
+        FixingGammaPass m_FirstProcessWhenNoPost;
+        FixingGammaPass m_FirstProcessWhenYesPost;
+#if UNITY_EDITOR
+        FixingGammaPass m_FirstProcessInSceneView;
+        FixingGammaPass m_FinalProcessInSceneView;
+#endif
+        // End Add
+        
 #if ENABLE_VR && ENABLE_XR_MODULE
         XROcclusionMeshPass m_XROcclusionMeshPass;
         CopyDepthPass m_XRCopyDepthPass;
@@ -259,9 +270,20 @@ namespace UnityEngine.Rendering.Universal
 
             m_CapturePass = new CapturePass(RenderPassEvent.AfterRendering);
             m_FinalBlitPass = new FinalBlitPass(RenderPassEvent.AfterRendering + 1, m_BlitMaterial);
-
+            
+            // Add by: XGAME
+            m_UGUIPass = new DrawObjectsPass("UGUI", false, RenderPassEvent.BeforeRenderingTransparents + 1, RenderQueueRange.transparent, LayerMask.GetMask("UI"), m_DefaultStencilState, stencilData.stencilReference);
+            m_FirstProcessWhenNoPost = new FixingGammaPass(RenderPassEvent.AfterRenderingPostProcessing + 1, m_BlitMaterial, "First Process of Fixing Gamma ( when Post Processing No )", ShaderKeywordStrings.LinearToSRGBConversion);
+            m_FirstProcessWhenYesPost = new FixingGammaPass(RenderPassEvent.BeforeRenderingPrePasses + 1, m_BlitMaterial, "First Process of Fixing Gamma ( when Post Processing Yes )", ShaderKeywordStrings.LinearToSRGBConversion);
+            // End Add
+            
 #if UNITY_EDITOR
             m_FinalDepthCopyPass = new CopyDepthPass(RenderPassEvent.AfterRendering + 9, m_CopyDepthMaterial);
+            
+            // Add By: XGAME
+            m_FirstProcessInSceneView = new FixingGammaPass(RenderPassEvent.BeforeRenderingTransparents, m_BlitMaterial, "First Process", ShaderKeywordStrings.LinearToSRGBConversion, "_FirstFixGammaProcessInSceneView");
+            m_FinalProcessInSceneView = new FixingGammaPass(RenderPassEvent.BeforeRenderingPostProcessing , m_BlitMaterial, "Final Process", ShaderKeywordStrings.SRGBToLinearConversion, "_FinalFixGammaProcessInSceneView");
+            // End Add
 #endif
 
             // RenderTexture format depends on camera and pipeline (HDR, non HDR, etc)
@@ -392,6 +414,17 @@ namespace UnityEngine.Rendering.Universal
                     return;
 #endif
                 EnqueuePass(m_RenderTransparentForwardPass);
+                
+                // Add By: XGAME
+                EnqueuePass(m_UGUIPass);
+                
+                // Add By:  XGAME
+                if (camera.CompareTag("UICamera"))
+                {
+                    m_FirstProcessWhenYesPost.Setup(m_ActiveCameraColorAttachment, m_ActiveCameraDepthAttachment);
+                    EnqueuePass(m_FirstProcessWhenYesPost);
+                }
+                // End Add
                 return;
             }
 
@@ -769,8 +802,20 @@ namespace UnityEngine.Rendering.Universal
                 m_RenderTransparentForwardPass.ConfigureColorStoreAction(transparentPassColorStoreAction);
                 m_RenderTransparentForwardPass.ConfigureDepthStoreAction(transparentPassDepthStoreAction);
                 EnqueuePass(m_RenderTransparentForwardPass);
+                
+                // Add By: XGAME
+                EnqueuePass(m_UGUIPass); 
+
+                // Add By:  XGAME
+                if (anyPostProcessing && !isSceneViewCamera && camera.CompareTag("UICamera"))
+                {
+                    m_FirstProcessWhenYesPost.Setup(m_ActiveCameraColorAttachment, m_ActiveCameraDepthAttachment);
+                    EnqueuePass(m_FirstProcessWhenYesPost);
+                }
+                // End Add
             }
             EnqueuePass(m_OnRenderObjectCallbackPass);
+
 
             bool hasCaptureActions = renderingData.cameraData.captureActions != null && lastCameraInTheStack;
 
@@ -786,6 +831,32 @@ namespace UnityEngine.Rendering.Universal
             // When post-processing is enabled we can use the stack to resolve rendering to camera target (screen or RT).
             // However when there are render passes executing after post we avoid resolving to screen so rendering continues (before sRGBConvertion etc)
             bool resolvePostProcessingToCameraTarget = !hasCaptureActions && !hasPassesAfterPostProcessing && !applyFinalPostProcessing;
+            
+            // Add By:  XGAME
+            // Purpose: First Process of Fix UI alpha gamma in case of Post-Processing Off.
+            if (!anyPostProcessing && !isSceneViewCamera && camera.CompareTag("MainCamera"))
+            {
+                m_FirstProcessWhenNoPost.Setup(m_ActiveCameraColorAttachment, m_ActiveCameraDepthAttachment);
+                EnqueuePass(m_FirstProcessWhenNoPost);
+            }
+            // End Add
+            
+            // Add by:  XGAME
+            // Purpose: Fix Scene View UI opacity
+#if UNITY_EDITOR
+            if (cameraData.isSceneViewCamera)
+            {
+                m_FirstProcessInSceneView.Setup(m_ActiveCameraColorAttachment);
+                EnqueuePass(m_FirstProcessInSceneView);
+            
+                if (anyPostProcessing)
+                {
+                    m_FinalProcessInSceneView.Setup(m_ActiveCameraColorAttachment);
+                    EnqueuePass(m_FinalProcessInSceneView);
+                }
+            }
+#endif
+            // End Add
 
             if (lastCameraInTheStack)
             {
