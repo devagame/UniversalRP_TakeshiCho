@@ -6,8 +6,8 @@
 * [UICamera => Gamma]    <=>   [SceneCamera => Linear]
 
 ### Unity:
-* Unity: 2021.2.12f1c1  
-* Universal RP: com.unity.render-pipelines.universal@12.1.4
+* Unity: 2021.3.1f1c1 
+* Universal RP: com.unity.render-pipelines.universal@12.1.6
 * Unity UI: com.unity.ugui@1.0.0
 
 ### Feature:
