@@ -43,6 +43,20 @@ namespace UnityEngine.Rendering.Universal
             public static readonly ProfilingSampler createCameraRenderTarget = new ProfilingSampler($"{k_Name}.{nameof(CreateCameraRenderTarget)}");
         }
 
+        /// <inheritdoc/>
+        public override int SupportedCameraStackingTypes()
+        {
+            switch (m_RenderingMode)
+            {
+                case RenderingMode.Forward:
+                    return 1 << (int)CameraRenderType.Base | 1 << (int)CameraRenderType.Overlay;
+                case RenderingMode.Deferred:
+                    return 1 << (int)CameraRenderType.Base;
+                default:
+                    return 0;
+            }
+        }
+
         // Rendering mode setup from UI.
         internal RenderingMode renderingMode => m_RenderingMode;
 
@@ -79,17 +93,6 @@ namespace UnityEngine.Rendering.Universal
         InvokeOnRenderObjectCallbackPass m_OnRenderObjectCallbackPass;
         FinalBlitPass m_FinalBlitPass;
         CapturePass m_CapturePass;
-        
-        // Add by: XGAME
-        DrawObjectsPass m_UGUIPass;
-        FixingGammaPass m_FirstProcessWhenNoPost;
-        FixingGammaPass m_FirstProcessWhenYesPost;
-#if UNITY_EDITOR
-        FixingGammaPass m_FirstProcessInSceneView;
-        FixingGammaPass m_FinalProcessInSceneView;
-#endif
-        // End Add
-        
 #if ENABLE_VR && ENABLE_XR_MODULE
         XROcclusionMeshPass m_XROcclusionMeshPass;
         CopyDepthPass m_XRCopyDepthPass;
@@ -270,20 +273,9 @@ namespace UnityEngine.Rendering.Universal
 
             m_CapturePass = new CapturePass(RenderPassEvent.AfterRendering);
             m_FinalBlitPass = new FinalBlitPass(RenderPassEvent.AfterRendering + 1, m_BlitMaterial);
-            
-            // Add by: XGAME
-            m_UGUIPass = new DrawObjectsPass("UGUI", false, RenderPassEvent.BeforeRenderingTransparents + 1, RenderQueueRange.transparent, LayerMask.GetMask("UI"), m_DefaultStencilState, stencilData.stencilReference);
-            m_FirstProcessWhenNoPost = new FixingGammaPass(RenderPassEvent.AfterRenderingPostProcessing + 1, m_BlitMaterial, "First Process of Fixing Gamma ( when Post Processing No )", ShaderKeywordStrings.LinearToSRGBConversion);
-            m_FirstProcessWhenYesPost = new FixingGammaPass(RenderPassEvent.BeforeRenderingPrePasses + 1, m_BlitMaterial, "First Process of Fixing Gamma ( when Post Processing Yes )", ShaderKeywordStrings.LinearToSRGBConversion);
-            // End Add
-            
+
 #if UNITY_EDITOR
             m_FinalDepthCopyPass = new CopyDepthPass(RenderPassEvent.AfterRendering + 9, m_CopyDepthMaterial);
-            
-            // Add By: XGAME
-            m_FirstProcessInSceneView = new FixingGammaPass(RenderPassEvent.BeforeRenderingTransparents, m_BlitMaterial, "First Process", ShaderKeywordStrings.LinearToSRGBConversion, "_FirstFixGammaProcessInSceneView");
-            m_FinalProcessInSceneView = new FixingGammaPass(RenderPassEvent.BeforeRenderingPostProcessing , m_BlitMaterial, "Final Process", ShaderKeywordStrings.SRGBToLinearConversion, "_FinalFixGammaProcessInSceneView");
-            // End Add
 #endif
 
             // RenderTexture format depends on camera and pipeline (HDR, non HDR, etc)
@@ -296,10 +288,7 @@ namespace UnityEngine.Rendering.Universal
             m_DepthInfoTexture.Init("_DepthInfoTexture");
             m_TileDepthInfoTexture.Init("_TileDepthInfoTexture");
 
-            supportedRenderingFeatures = new RenderingFeatures()
-            {
-                cameraStacking = true,
-            };
+            supportedRenderingFeatures = new RenderingFeatures();
 
             if (this.renderingMode == RenderingMode.Deferred)
             {
@@ -414,17 +403,6 @@ namespace UnityEngine.Rendering.Universal
                     return;
 #endif
                 EnqueuePass(m_RenderTransparentForwardPass);
-                
-                // Add By: XGAME
-                EnqueuePass(m_UGUIPass);
-                
-                // Add By:  XGAME
-                if (camera.CompareTag("UICamera"))
-                {
-                    m_FirstProcessWhenYesPost.Setup(m_ActiveCameraColorAttachment, m_ActiveCameraDepthAttachment);
-                    EnqueuePass(m_FirstProcessWhenYesPost);
-                }
-                // End Add
                 return;
             }
 
@@ -436,7 +414,7 @@ namespace UnityEngine.Rendering.Universal
 
             // Assign the camera color target early in case it is needed during AddRenderPasses.
             bool isPreviewCamera = cameraData.isPreviewCamera;
-            var createColorTexture = m_IntermediateTextureMode == IntermediateTextureMode.Always && !isPreviewCamera;
+            var createColorTexture = (rendererFeatures.Count != 0 && m_IntermediateTextureMode == IntermediateTextureMode.Always) && !isPreviewCamera;
             if (createColorTexture)
             {
                 m_ActiveCameraColorAttachment = m_ColorBufferSystem.GetBackBuffer();
@@ -802,20 +780,8 @@ namespace UnityEngine.Rendering.Universal
                 m_RenderTransparentForwardPass.ConfigureColorStoreAction(transparentPassColorStoreAction);
                 m_RenderTransparentForwardPass.ConfigureDepthStoreAction(transparentPassDepthStoreAction);
                 EnqueuePass(m_RenderTransparentForwardPass);
-                
-                // Add By: XGAME
-                EnqueuePass(m_UGUIPass); 
-
-                // Add By:  XGAME
-                if (anyPostProcessing && !isSceneViewCamera && camera.CompareTag("UICamera"))
-                {
-                    m_FirstProcessWhenYesPost.Setup(m_ActiveCameraColorAttachment, m_ActiveCameraDepthAttachment);
-                    EnqueuePass(m_FirstProcessWhenYesPost);
-                }
-                // End Add
             }
             EnqueuePass(m_OnRenderObjectCallbackPass);
-
 
             bool hasCaptureActions = renderingData.cameraData.captureActions != null && lastCameraInTheStack;
 
@@ -831,32 +797,6 @@ namespace UnityEngine.Rendering.Universal
             // When post-processing is enabled we can use the stack to resolve rendering to camera target (screen or RT).
             // However when there are render passes executing after post we avoid resolving to screen so rendering continues (before sRGBConvertion etc)
             bool resolvePostProcessingToCameraTarget = !hasCaptureActions && !hasPassesAfterPostProcessing && !applyFinalPostProcessing;
-            
-            // Add By:  XGAME
-            // Purpose: First Process of Fix UI alpha gamma in case of Post-Processing Off.
-            if (!anyPostProcessing && !isSceneViewCamera && camera.CompareTag("MainCamera"))
-            {
-                m_FirstProcessWhenNoPost.Setup(m_ActiveCameraColorAttachment, m_ActiveCameraDepthAttachment);
-                EnqueuePass(m_FirstProcessWhenNoPost);
-            }
-            // End Add
-            
-            // Add by:  XGAME
-            // Purpose: Fix Scene View UI opacity
-#if UNITY_EDITOR
-            if (cameraData.isSceneViewCamera)
-            {
-                m_FirstProcessInSceneView.Setup(m_ActiveCameraColorAttachment);
-                EnqueuePass(m_FirstProcessInSceneView);
-            
-                if (anyPostProcessing)
-                {
-                    m_FinalProcessInSceneView.Setup(m_ActiveCameraColorAttachment);
-                    EnqueuePass(m_FinalProcessInSceneView);
-                }
-            }
-#endif
-            // End Add
 
             if (lastCameraInTheStack)
             {
@@ -1094,6 +1034,11 @@ namespace UnityEngine.Rendering.Universal
             return inputSummary;
         }
 
+        bool IsGLESDevice()
+        {
+            return SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES2 || SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES3;
+        }
+
         void CreateCameraRenderTarget(ScriptableRenderContext context, ref RenderTextureDescriptor descriptor, bool primedDepth)
         {
             CommandBuffer cmd = CommandBufferPool.Get();
@@ -1125,7 +1070,13 @@ namespace UnityEngine.Rendering.Universal
                     var depthDescriptor = descriptor;
                     depthDescriptor.useMipMap = false;
                     depthDescriptor.autoGenerateMips = false;
-                    depthDescriptor.bindMS = depthDescriptor.msaaSamples > 1 && !SystemInfo.supportsMultisampleAutoResolve && (SystemInfo.supportsMultisampledTextures != 0);
+
+                    depthDescriptor.bindMS = depthDescriptor.msaaSamples > 1 && (SystemInfo.supportsMultisampledTextures != 0);
+
+                    // binding MS surfaces is not supported by the GLES backend, and it won't be fixed after investigating
+                    // the high performance impact of potential fixes, which would make it more expensive than depth prepass (fogbugz 1339401 for more info)
+                    if (IsGLESDevice())
+                        depthDescriptor.bindMS = false;
 
                     depthDescriptor.colorFormat = RenderTextureFormat.Depth;
                     depthDescriptor.depthBufferBits = k_DepthStencilBufferBits;
@@ -1209,7 +1160,7 @@ namespace UnityEngine.Rendering.Universal
             bool msaaDepthResolve = msaaEnabledForCamera && SystemInfo.supportsMultisampledTextures != 0;
 
             // copying depth on GLES3 is giving invalid results. Needs investigation (Fogbugz issue 1339401)
-            if (SystemInfo.graphicsDeviceType == GraphicsDeviceType.OpenGLES3)
+            if (IsGLESDevice())
                 return false;
 
             return supportsDepthCopy || msaaDepthResolve;
