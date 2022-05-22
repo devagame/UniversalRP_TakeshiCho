@@ -667,14 +667,23 @@ namespace UnityEngine.Rendering.Universal.Internal
                     // For now, when render post-processing in the middle of the camera stack (not resolving to screen)
                     // we do an extra blit to ping pong results back to color texture. In future we should allow a Swap of the current active color texture
                     // in the pipeline to avoid this extra blit.
-                    if (!m_ResolveToScreen && !m_UseSwapBuffer)
+                    if (!m_ResolveToScreen)
                     {
-                        cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, cameraTarget);
-
-                        // Change by:XGAME Set UI target
-                        cmd.SetRenderTarget(m_UGUITarget.id, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
-
-                        cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);
+                        if (!m_UseSwapBuffer)
+                        {
+                            cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, cameraTarget);
+                            cmd.SetRenderTarget(m_Source.id, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
+                            cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);
+                        }
+                        else
+                        {
+                            cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, cameraTarget);
+                            
+                            // Change by:XGAME Set UI target
+                            cmd.SetRenderTarget(m_UGUITarget.id, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.Store, RenderBufferLoadAction.DontCare, RenderBufferStoreAction.DontCare);
+                            
+                            cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);
+                        }
                     }
 
                     cmd.SetViewProjectionMatrices(cameraData.camera.worldToCameraMatrix, cameraData.camera.projectionMatrix);
