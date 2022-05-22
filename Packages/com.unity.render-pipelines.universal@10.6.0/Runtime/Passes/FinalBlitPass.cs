@@ -48,6 +48,15 @@ namespace UnityEngine.Rendering.Universal.Internal
             CommandBuffer cmd = CommandBufferPool.Get();
             using (new ProfilingScope(cmd, ProfilingSampler.Get(URPProfileId.FinalBlit)))
             {
+                // Add By:      Takeshi;
+                // Purpose:     Final Process of Fix UI alpha gamma in case of FXAA Off.
+                // Note:        We should not fix gamma when the image is rendered for a Reflection Probe
+                if (cameraData.cameraType == CameraType.Reflection)
+                {
+                    // Do something maybe...
+                }
+                else cmd.EnableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
+                // End Add
 
                 CoreUtils.SetKeyword(cmd, ShaderKeywordStrings.LinearToSRGBConversion,
                     cameraData.requireSrgbConversion);
@@ -109,10 +118,14 @@ namespace UnityEngine.Rendering.Universal.Internal
                     cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);
                     cmd.SetViewProjectionMatrices(camera.worldToCameraMatrix, camera.projectionMatrix);
                 }
+                
+                // Add By: Takeshi; End the Final Process.
+                cmd.DisableShaderKeyword(ShaderKeywordStrings.SRGBToLinearConversion);
             }
 
             context.ExecuteCommandBuffer(cmd);
             CommandBufferPool.Release(cmd);
         }
+
     }
 }

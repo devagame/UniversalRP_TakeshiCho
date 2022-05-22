@@ -14,10 +14,13 @@ namespace UnityEngine.Rendering.Universal.Internal
     {
         FilteringSettings m_FilteringSettings;
         RenderStateBlock m_RenderStateBlock;
+        RenderTargetHandle m_UguiTarget;
         List<ShaderTagId> m_ShaderTagIdList = new List<ShaderTagId>();
         string m_ProfilerTag;
         ProfilingSampler m_ProfilingSampler;
         bool m_IsOpaque;
+        bool m_IsGameViewUI;
+        LayerMask m_LayerMask;
 
         static readonly int s_DrawObjectPassDataPropID = Shader.PropertyToID("_DrawObjectPassData");
 
@@ -40,6 +43,8 @@ namespace UnityEngine.Rendering.Universal.Internal
                 m_RenderStateBlock.mask = RenderStateMask.Stencil;
                 m_RenderStateBlock.stencilState = stencilState;
             }
+
+            m_LayerMask = layerMask;
         }
 
         public DrawObjectsPass(string profilerTag, bool opaque, RenderPassEvent evt, RenderQueueRange renderQueueRange, LayerMask layerMask, StencilState stencilState, int stencilReference)
@@ -54,6 +59,15 @@ namespace UnityEngine.Rendering.Universal.Internal
             m_ProfilingSampler = ProfilingSampler.Get(profileId);
         }
 
+        public void Setup(bool isGameViewUI)
+        {
+            m_IsGameViewUI = isGameViewUI;
+        }
+        public void Setup(RenderTargetHandle uiTargetHandle,bool isGameViewUI)
+        {
+            m_UguiTarget = uiTargetHandle;
+            m_IsGameViewUI = isGameViewUI;
+        }
         /// <inheritdoc/>
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
         {
@@ -62,6 +76,18 @@ namespace UnityEngine.Rendering.Universal.Internal
             CommandBuffer cmd = CommandBufferPool.Get();
             using (new ProfilingScope(cmd, m_ProfilingSampler))
             {
+                Camera camera = renderingData.cameraData.camera;
+                
+                /* Add by: Takeshi, Set UI image shder properties */
+                if (m_IsGameViewUI)
+                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera,1);
+#if UNITY_EDITOR
+                else if(m_FilteringSettings.layerMask == LayerMask.GetMask("UI") && renderingData.cameraData.isSceneViewCamera)
+                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera,1);
+#endif
+                else cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera,0);
+                /* End Add */
+                
                 // Global render pass data containing various settings.
                 // x,y,z are currently unused
                 // w is used for knowing whether the object is opaque(1) or alpha blended(0)
@@ -81,7 +107,6 @@ namespace UnityEngine.Rendering.Universal.Internal
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
-                Camera camera = renderingData.cameraData.camera;
                 var sortFlags = (m_IsOpaque) ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
                 var drawSettings = CreateDrawingSettings(m_ShaderTagIdList, ref renderingData, sortFlags);
                 var filterSettings = m_FilteringSettings;
@@ -93,7 +118,16 @@ namespace UnityEngine.Rendering.Universal.Internal
                     filterSettings.layerMask = -1;
                 }
                 #endif
-
+                
+                /* Add by: Takeshi, Set UI Render target */
+                if (m_IsGameViewUI && m_UguiTarget != default)
+                {
+                    cmd.SetRenderTarget(m_UguiTarget.Identifier());
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
+                }
+                /* End Add */
+                
                 context.DrawRenderers(renderingData.cullResults, ref drawSettings, ref filterSettings, ref m_RenderStateBlock);
 
                 // Render objects that did not match any shader pass with error shader
