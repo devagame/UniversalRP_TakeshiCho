@@ -13,6 +13,7 @@ namespace UnityEngine.Rendering.Universal.Internal
     public class FixingGammaPass : ScriptableRenderPass
     {
         RenderTargetHandle m_Source;
+        RenderTargetHandle m_UGUITarget;
         RenderTargetHandle m_Depth;
         Material m_BlitMaterial;
 
@@ -30,7 +31,9 @@ namespace UnityEngine.Rendering.Universal.Internal
             m_ShaderKeyword = shaderKeyword;
             m_TempBlit.Init("_FixingGamma");
         }
-        public FixingGammaPass(RenderPassEvent evt, Material blitMaterial, string profilerTag, string shaderKeyword,string blitRTName)
+
+        public FixingGammaPass(RenderPassEvent evt, Material blitMaterial, string profilerTag, string shaderKeyword,
+            string blitRTName)
         {
             m_BlitMaterial = blitMaterial;
             renderPassEvent = evt;
@@ -53,7 +56,14 @@ namespace UnityEngine.Rendering.Universal.Internal
             Setup(colorHandle);
             m_Depth = depth;
         }
-        
+
+        public void Setup(in RenderTargetHandle fixedcolorHandle, in RenderTargetHandle colorHandle,
+            in RenderTargetHandle depth)
+        {
+            Setup(colorHandle, depth);
+            m_UGUITarget = fixedcolorHandle;
+        }
+
 
         /// <inheritdoc/>
         public override void Execute(ScriptableRenderContext context, ref RenderingData renderingData)
@@ -66,15 +76,15 @@ namespace UnityEngine.Rendering.Universal.Internal
                 cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source.Identifier());
                 RenderTextureDescriptor desc = renderingData.cameraData.cameraTargetDescriptor;
                 desc.depthBufferBits = 0;
-                
+
 #if UNITY_EDITOR
                 if (cameraData.isSceneViewCamera)
                 {
-                    cmd.SetGlobalInt(ShaderPropertyId.isInUICamera, 1);
+                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera, 1);
                     cmd.GetTemporaryRT(m_TempBlit.id, desc);
 
                     cmd.Blit(m_Source.Identifier(), m_TempBlit.Identifier(), m_BlitMaterial);
-                    
+
                     cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_TempBlit.Identifier());
 
                     // Conversion Gamma,and return to main Buffer
@@ -85,28 +95,13 @@ namespace UnityEngine.Rendering.Universal.Internal
                 else
 #endif
                 {
-
-                    // Create a new RT.
-                    cmd.GetTemporaryRT(m_TempBlit.id, desc);
-
-                    cmd.Blit(m_Source.Identifier(), m_TempBlit.Identifier(), m_BlitMaterial);
-
-                    // Recreate Main Buffer
-                    cmd.ReleaseTemporaryRT(m_Source.id);
-                    cmd.ReleaseTemporaryRT(m_Depth.id);
-                    desc.height = Screen.height;
-                    desc.width = Screen.width;
-                    
-                    cmd.GetTemporaryRT(m_Depth.id,desc);
-                    
-                    desc.graphicsFormat = GraphicsFormat.R8G8B8A8_UNorm;
-                    
-                    cmd.GetTemporaryRT(m_Source.id, desc);
-                    cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_TempBlit.Identifier());
+                    cmd.SetRenderTarget(m_UGUITarget.Identifier());
+                    cmd.SetGlobalTexture(ShaderPropertyId.sourceTex, m_Source.Identifier());
 
                     // Conversion Gamma,and return to main Buffer
                     cmd.EnableShaderKeyword(m_ShaderKeyword);
-                    cmd.Blit(m_TempBlit.Identifier(), m_Source.Identifier(), m_BlitMaterial);
+                    cmd.SetViewProjectionMatrices(Matrix4x4.identity, Matrix4x4.identity);
+                    cmd.DrawMesh(RenderingUtils.fullscreenMesh, Matrix4x4.identity, m_BlitMaterial);
                     cmd.DisableShaderKeyword(m_ShaderKeyword);
                 }
             }
@@ -117,7 +112,7 @@ namespace UnityEngine.Rendering.Universal.Internal
 
         public override void FrameCleanup(CommandBuffer cmd)
         {
-            cmd.ReleaseTemporaryRT(m_TempBlit.id); 
+            cmd.ReleaseTemporaryRT(m_TempBlit.id);
         }
     }
 }

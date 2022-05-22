@@ -14,10 +14,13 @@ namespace UnityEngine.Rendering.Universal.Internal
     {
         FilteringSettings m_FilteringSettings;
         RenderStateBlock m_RenderStateBlock;
+		RenderTargetHandle m_UGUITarget;    // Add by: XGAME
         List<ShaderTagId> m_ShaderTagIdList = new List<ShaderTagId>();
         string m_ProfilerTag;
         ProfilingSampler m_ProfilingSampler;
         bool m_IsOpaque;
+		bool m_IsGameViewUI;    // Add by: XGAME
+        LayerMask m_LayerMask;   // Add by: XGAME
 
         bool m_UseDepthPriming;
 
@@ -42,6 +45,8 @@ namespace UnityEngine.Rendering.Universal.Internal
                 m_RenderStateBlock.mask = RenderStateMask.Stencil;
                 m_RenderStateBlock.stencilState = stencilState;
             }
+            
+            m_LayerMask = layerMask;  // Add by: XGAME
         }
 
         public DrawObjectsPass(string profilerTag, bool opaque, RenderPassEvent evt, RenderQueueRange renderQueueRange, LayerMask layerMask, StencilState stencilState, int stencilReference)
@@ -55,6 +60,19 @@ namespace UnityEngine.Rendering.Universal.Internal
         {
             m_ProfilingSampler = ProfilingSampler.Get(profileId);
         }
+
+		// Add by: XGAME
+        public void Setup(bool isGameViewUI)
+        {
+            m_IsGameViewUI = isGameViewUI;
+        }
+
+        public void Setup(RenderTargetHandle uiTargetHandle, bool isGameViewUI)
+        {
+            m_UGUITarget = uiTargetHandle;
+            m_IsGameViewUI = isGameViewUI;
+        }
+		// End Add
 
         public override void OnCameraSetup(CommandBuffer cmd, ref RenderingData renderingData)
         {
@@ -78,6 +96,20 @@ namespace UnityEngine.Rendering.Universal.Internal
             CommandBuffer cmd = CommandBufferPool.Get();
             using (new ProfilingScope(cmd, m_ProfilingSampler))
             {
+                // Add by: XGAME
+                Camera camera = renderingData.cameraData.camera;
+
+				// Set UI image shder properties 
+                if (m_IsGameViewUI)
+                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera, 1);
+#if UNITY_EDITOR
+                else if(m_FilteringSettings.layerMask == LayerMask.GetMask("UI") && renderingData.cameraData.isSceneViewCamera)
+                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera, 1);
+#endif
+                else 
+                    cmd.SetGlobalFloat(ShaderPropertyId.isInUICamera, 0);
+                // End Add
+                
                 // Global render pass data containing various settings.
                 // x,y,z are currently unused
                 // w is used for knowing whether the object is opaque(1) or alpha blended(0)
@@ -97,7 +129,7 @@ namespace UnityEngine.Rendering.Universal.Internal
                 context.ExecuteCommandBuffer(cmd);
                 cmd.Clear();
 
-                Camera camera = renderingData.cameraData.camera;
+                // Camera camera = renderingData.cameraData.camera;  // Add by: XGAME
                 var sortFlags = (m_IsOpaque) ? renderingData.cameraData.defaultOpaqueSortFlags : SortingCriteria.CommonTransparent;
                 if (renderingData.cameraData.renderer.useDepthPriming && m_IsOpaque && (renderingData.cameraData.renderType == CameraRenderType.Base || renderingData.cameraData.clearDepth))
                     sortFlags = SortingCriteria.SortingLayer | SortingCriteria.RenderQueue | SortingCriteria.OptimizeStateChanges | SortingCriteria.CanvasOrder;
@@ -111,6 +143,15 @@ namespace UnityEngine.Rendering.Universal.Internal
                     filterSettings.layerMask = -1;
                 }
 #endif
+
+                /* Add by: XGAME, Set UI Render target */
+                if (m_IsGameViewUI && m_UGUITarget != default)
+                {
+                    cmd.SetRenderTarget(m_UGUITarget.Identifier());
+                    context.ExecuteCommandBuffer(cmd);
+                    cmd.Clear();
+                }
+                /* End Add */
 
                 DrawingSettings drawSettings = CreateDrawingSettings(m_ShaderTagIdList, ref renderingData, sortFlags);
 
