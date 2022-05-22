@@ -128,9 +128,9 @@
       "url": "https://packages.unity.cn"
     },
     "com.unity.ugui": {
-      "version": "file:com.unity.ugui@1.0.0",
+      "version": "1.0.0",
       "depth": 0,
-      "source": "embedded",
+      "source": "builtin",
       "dependencies": {
         "com.unity.modules.ui": "1.0.0",
         "com.unity.modules.imgui": "1.0.0"
