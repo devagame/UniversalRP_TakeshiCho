@@ -12,6 +12,9 @@
 * Universal RP: com.unity.render-pipelines.universal@12.1.6
 * Unity UI: com.unity.ugui@1.0.0
 
+### Warning:
+* Forward Renderer Data => Transparent Layer Mask 必须去掉 "UI" Layer Mask , 否则 UI 会被 DrawTransparentObjects 和 UGUI 这两个 Pass 重复绘制.
+
 ### Feature:
 * In our Render Pipeline,the UI images have the same opacity with images which are in the PhotoShop.
 
