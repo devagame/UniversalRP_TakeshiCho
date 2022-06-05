@@ -4,17 +4,12 @@
 
 此项目方案是根据 完美技术TA TakeshiCho 七块君 (JP) 提供的库为 BASE 进行开发的.. (由于原作者只维护 URP 10.6.0 版, 不考虑其它版本) URP 10 => 12 版本差异巨大 所以这里创建独立的库 以支持 (URP 12.x.x) 高版本..
 
-[![Author](https://img.shields.io/badge/Versions-12.1.6+-blue.svg "")](https://github.com/zhanglongfei/ "")
+# [![Author](https://img.shields.io/badge/Unity-2021.3.1f1c1-blue.svg "")](https://github.com/zhanglongfei/ "") [![Author](https://img.shields.io/badge/UniversalRP-12.1.6+-blue.svg "")](https://github.com/zhanglongfei/ "") [![Author](https://img.shields.io/badge/UGUI-v1.0-blue.svg "")](https://github.com/zhanglongfei/ "")
 
 这个项目是一套基于 Unity UniversalRP 的 UI 渲染管线 和 Shader 框架, 为了修复线性色彩空间中的 UI 切图的透明度错误,
 能够让 UI 设计师在 Unity 中保持原有的 sRBG 工作流.
 
 * [UICamera => Gamma]    <=>   [SceneCamera => Linear]
-
-### Unity:
-* Unity: 2021.3.1f1c1 
-* Universal RP: com.unity.render-pipelines.universal@12.1.6
-* Unity UI: com.unity.ugui@1.0.0
 
 ### Warning:
 * Forward Renderer Data => Transparent Layer Mask 必须去掉 "UI" Layer Mask , 否则 UI 会被 DrawTransparentObjects 和 UGUI 这两个 Pass 重复绘制.
