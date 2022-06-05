@@ -1,6 +1,8 @@
 # UniversalRP 自定义渲染管线 DEMO
 
-此项目方案是根据 完美技术TA TakeshiCho 七块君 (JP) 提供的库为 BASE 进行开发的.. (由于原作者只愿意维护 URP 10.6.0 版, 不考虑其它版本) 所以这里单开一个库..
+# [![Build](https://github.com/penrose/penrose/actions/workflows/build.yml/badge.svg)](https://github.com/penrose/penrose/actions/workflows/build.yml) [![codecov](https://codecov.io/gh/penrose/penrose/branch/main/graph/badge.svg?token=opGTmY4rkK)](https://codecov.io/gh/penrose/penrose) [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier) [![license](https://img.shields.io/github/license/penrose/penrose)](LICENSE)
+
+此项目方案是根据 完美技术TA TakeshiCho 七块君 (JP) 提供的库为 BASE 进行开发的.. (由于原作者只维护 URP 10.6.0 版, 不考虑其它版本) URP 10 => 12 版本差异巨大 所以这里创建独立的库 以支持 (URP 12.x.x) 高版本..
 
 这个项目是一套基于 Unity UniversalRP 的 UI 渲染管线 和 Shader 框架, 为了修复线性色彩空间中的 UI 切图的透明度错误,
 能够让 UI 设计师在 Unity 中保持原有的 sRBG 工作流.
