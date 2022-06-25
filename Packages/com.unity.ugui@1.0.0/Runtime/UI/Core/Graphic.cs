@@ -94,7 +94,11 @@ namespace UnityEngine.UI
             get
             {
                 if (s_DefaultUI == null)
-                    s_DefaultUI = Canvas.GetDefaultCanvasMaterial();
+                {
+                    var shader = Shader.Find("CCGUI/Default");
+                    s_DefaultUI = new Material(shader); // Canvas.GetDefaultCanvasMaterial();
+                }
+                
                 return s_DefaultUI;
             }
         }
