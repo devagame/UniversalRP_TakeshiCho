@@ -1,10 +1,10 @@
 # UniversalRP 自定义渲染管线 DEMO
 
-# [![Build](https://github.com/penrose/penrose/actions/workflows/build.yml/badge.svg)](https://github.com/zhanglongfei/UniversalRP/actions/workflows/blank.yml) [![codecov](https://codecov.io/gh/zhanglongfei/UniversalRP/branch/Master/graph/badge.svg?token=8dhAVwcCYW)](https://codecov.io/gh/zhanglongfei/UniversalRP) [![license](https://img.shields.io/github/license/zhanglongfei/universalrp)](LICENSE)
+# [![Build](https://github.com/penrose/penrose/actions/workflows/build.yml/badge.svg)](https://github.com/devagame/UniversalRP/actions/workflows/blank.yml) [![codecov](https://codecov.io/gh/devagame/UniversalRP/branch/Master/graph/badge.svg?token=8dhAVwcCYW)](https://codecov.io/gh/devagame/UniversalRP) [![license](https://img.shields.io/github/license/devagame/universalrp)](LICENSE)
 
 此项目方案是根据 完美技术TA TakeshiCho 七块君 (JP) 提供的库为 BASE 进行开发的.. (由于原作者只维护 URP 10.6.0 版, 不考虑其它版本) URP 10 => 12 版本差异巨大 所以这里创建独立的库 以支持 (URP 12.x.x) 高版本..
 
-# [![Author](https://img.shields.io/badge/Unity-2021.3.1f1c1-blue.svg "")](https://github.com/zhanglongfei/ "") [![Author](https://img.shields.io/badge/UniversalRP-12.1.6+-blue.svg "")](https://github.com/zhanglongfei/ "") [![Author](https://img.shields.io/badge/UGUI-v1.0-blue.svg "")](https://github.com/zhanglongfei/ "")
+# [![Author](https://img.shields.io/badge/Unity-2021.3.1f1-blue.svg "")](https://github.com/devagame/ "") [![Author](https://img.shields.io/badge/UniversalRP-12.1.6+-blue.svg "")](https://github.com/devagame/ "") [![Author](https://img.shields.io/badge/UGUI-v1.0-blue.svg "")](https://github.com/devagame/ "")
 
 这个项目是一套基于 Unity UniversalRP 的 UI 渲染管线 和 Shader 框架, 为了修复线性色彩空间中的 UI 切图的透明度错误,
 能够让 UI 设计师在 Unity 中保持原有的 sRBG 工作流.
@@ -17,11 +17,11 @@
 ### Feature:
 * In our Render Pipeline,the UI images have the same opacity with images which are in the PhotoShop.
 
-![Opacity_Comparison](./Readme/Opacity_Comparison.png)
+![Opacity_Comparison](./README/OpacityComparison.png)
 
 * UI Render with Individual resolution.
 
-![RenderScaleComparison](./Readme/RenderScaleComparison.png)  
+![RenderScaleComparison](./README/RenderScaleComparison.png)  
   
 
 ### Update:
@@ -59,12 +59,12 @@
 * To Develop Camera Managing Script. 
 
 # Pipeline Flowchart
-![UI_RenderPipeline](./Readme/RenderPipeline.png)
+![UI_RenderPipeline](./README/RenderPipeline.png)
 
 ## Why using *RGBA32 UNorm* for the UI Buffer
 When the final 3D render image is blit into the UI buffer, and transform to the Gamma Space, 
 we can compare the resolutions of Color Depth in different graphics format of the UI Buffer.
 Evidently the RGBA32 UNorm has the more details.  
 
-![UI_RenderPipeline](./Readme/ColorDepthComparison.png)
+![UI_RenderPipeline](./README/ColorDepthComparison.png)
 
