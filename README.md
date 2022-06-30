@@ -17,7 +17,7 @@
 ### Feature:
 * In our Render Pipeline,the UI images have the same opacity with images which are in the PhotoShop.
 
-![Opacity_Comparison](./README/OpacityComparison.png)
+![OpacityComparison](./README/OpacityComparison.png)
 
 * UI Render with Individual resolution.
 
@@ -59,12 +59,12 @@
 * To Develop Camera Managing Script. 
 
 # Pipeline Flowchart
-![UI_RenderPipeline](./README/RenderPipeline.png)
+![RenderPipeline](./README/RenderPipeline.png)
 
 ## Why using *RGBA32 UNorm* for the UI Buffer
 When the final 3D render image is blit into the UI buffer, and transform to the Gamma Space, 
 we can compare the resolutions of Color Depth in different graphics format of the UI Buffer.
 Evidently the RGBA32 UNorm has the more details.  
 
-![UI_RenderPipeline](./README/ColorDepthComparison.png)
+![ColorDepthComparison](./README/ColorDepthComparison.png)
 
