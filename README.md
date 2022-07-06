@@ -1,4 +1,4 @@
-# UniversalRP 自定义渲染管线 DEMO
+# UniversalRP 自定义渲染管线
 
 # [![Build](https://github.com/penrose/penrose/actions/workflows/build.yml/badge.svg)](https://github.com/devagame/UniversalRP/actions/workflows/blank.yml) [![codecov](https://codecov.io/gh/devagame/UniversalRP/branch/Master/graph/badge.svg?token=8dhAVwcCYW)](https://codecov.io/gh/devagame/UniversalRP) [![license](https://img.shields.io/github/license/devagame/universalrp)](LICENSE)
 
