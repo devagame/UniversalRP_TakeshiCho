@@ -6,8 +6,7 @@
 
 # [![Author](https://img.shields.io/badge/Unity-2021.3.1f1-blue.svg "")](https://github.com/devagame/ "") [![Author](https://img.shields.io/badge/UniversalRP-12.1.6+-blue.svg "")](https://github.com/devagame/ "") [![Author](https://img.shields.io/badge/UGUI-v1.0-blue.svg "")](https://github.com/devagame/ "")
 
-这个项目是一套基于 Unity UniversalRP 的 UI 渲染管线 和 Shader 框架, 为了修复线性色彩空间中的 UI 切图的透明度错误,
-能够让 UI 设计师在 Unity 中保持原有的 sRBG 工作流.
+本项目是 UniversalRP 的扩展库 修复线性空间中的 UI 透明度差异问题 能够让 UI 设计师在 Unity 中保持原有的 sRBG 工作流.
 
 * [UICamera => Gamma]    <=>   [SceneCamera => Linear]
 
